@@ -7,7 +7,11 @@
 
 using std::vector;
 
+// Namespace for internal helpers:
+// primes_bitpack class
+// sieveThread function
 namespace {
+
 /**
  * Internal class for accessing the special bit-packed primes data-type.
  *
@@ -121,10 +125,10 @@ class primes_bitpack {
  *
  * @param   sieveSqrt   Pointer to prefilled bitpack with primes up to sqrt(limit)
  * @param   target      Pointer to bitpack to fill
- * @param   start       Start of this thread's segment
- * @param   end         End of this thread's segment
+ * @param   range       Range of values for this thread's segment
  */
-void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack* target, uint64_t start, uint64_t end)
+void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack* target,
+                 std::pair<uint64_t, uint64_t> range)
 {
     uint64_t s = 7; // For tracking which primes are needed per segment
     uint64_t segment_size = L1D_CACHE_SIZE* 30;
@@ -132,10 +136,10 @@ void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack
     // Create vector for holding sieving values
     vector<std::pair<uint32_t, uint64_t>> primes;
 
-    for (uint64_t low = start; low <= end; low += segment_size) {
+    for (uint64_t low = range.first; low <= range.second; low += segment_size) {
 
         // current segment = interval [low, high]
-        uint64_t high = std::min(low + segment_size - 1, end);
+        uint64_t high = std::min(low + segment_size - 1, range.second);
 
         // store primes needed to cross off multiples
         // Make sure first value is above start
@@ -158,7 +162,7 @@ void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack
             const uint64_t num = p.first;
 
             // Convert s to be in the right range
-            uint64_t n = p.second - start;
+            uint64_t n = p.second - range.first;
 
             // Here we're only checking possible primes after wheel-factorization
             switch ((p.second/num)%30) do {
@@ -170,9 +174,9 @@ void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack
                 case 19: target->set(n); n+=num*4;
                 case 23: target->set(n); n+=num*6;
                 case 29: target->set(n); n+=num*2;
-            } while(n<=high-start);
+            } while(n <= high - range.first);
 
-            p.second = n+start;
+            p.second = n + range.first;
         }
     }
 }
@@ -353,9 +357,10 @@ void Primes::sieve(uint64_t limit, size_t threads)
     // Create threads
     vector<std::thread> thList;
     for (auto& x : pSieve->data_) {
-        thList.push_back(std::thread(sieveThread, 
-                    sieveSqrt, &x.second, x.first, x.first + pSieve->getSize()));
+        thList.push_back(std::thread(sieveThread, sieveSqrt, &x.second,
+                std::make_pair(x.first, x.first + pSieve->getSize())));
     }
+
     // Wait for all to finish
     for (auto& t : thList)
         t.join();

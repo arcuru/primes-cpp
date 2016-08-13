@@ -19,6 +19,10 @@ class Primes
         // Test 1 number for primality
         bool isPrime(uint64_t n) const;
 
+        // Creates an internal data structure with all primes up to limit
+        // Speeds up isPrime() and is used internally for getList()
+        void sieve(uint64_t limit, std::size_t threads = SIEVE_THREADS);
+
         // Calculate pi(x), number of primes below x
         // Returns the exact number if available, otherwise
         // it returns an upper bound
@@ -26,10 +30,6 @@ class Primes
 
         // Get a vector full of primes up to limit
         const std::vector<uint64_t>& getList(uint64_t limit = 0);
-
-        // Creates an internal data structure with all primes up to limit
-        // Speeds up isPrime() and is used internally for getList()
-        void sieve(uint64_t limit, std::size_t threads = SIEVE_THREADS);
 
     private:
         std::unique_ptr<threaded_bitpack> pSieve;
