@@ -1,4 +1,4 @@
-#include "primes.hpp"
+#include "primes.h"
 #include <iostream>
 #include <chrono>
 #include <cassert>

@@ -43,7 +43,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 enable_testing()
 
 # Build executable from sources and headers
-add_executable(unittest primes.cpp primes.hpp test/unittest.cpp)
+add_executable(unittest primes.cpp primes.h test/unittest.cpp)
 
 # Link to gtest
 target_link_libraries(unittest gtest_main)
@@ -52,5 +52,5 @@ target_link_libraries(unittest gtest_main)
 add_test(NAME unittest COMMAND unittest)
 
 # Add benchmark executable
-add_executable(benchmark primes.cpp primes.hpp test/benchmark.cpp)
+add_executable(benchmark primes.cpp primes.h test/benchmark.cpp)
 

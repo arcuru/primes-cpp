@@ -1,4 +1,4 @@
-#include "primes.hpp"
+#include "primes.h"
 #include <gtest/gtest.h>
 
 const std::vector<uint64_t> thou{

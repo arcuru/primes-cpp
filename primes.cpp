@@ -1,4 +1,4 @@
-#include "primes.hpp"
+#include "primes.h"
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
@@ -22,43 +22,30 @@ class primes_bitpack {
 
     public:
 
-        primes_bitpack() : limit_(0) {}
-        ~primes_bitpack() {}
+        primes_bitpack(uint64_t limit)
+            : limit_(limit), data_((limit / 30) + 1, 0)
+        {}
 
         /**
-         * Creates a vector containing all the primes in the bitpack
+         * Adds to a given vector the values contained in this bitpack
          *
+         * @param   v       Vector
          * @param   limit   Upper bound.
-         * @return  Vector holding all primes below limit.
+         * @param   offset  The starting point of this bitpack
          */
-        vector<uint64_t> getList(uint64_t limit) const
+        void getList(vector<uint64_t>& ret, uint64_t limit, uint64_t offset) const
         {
             if ( limit > limit_ )
                 throw std::out_of_range("Prime hasn't been sieved.");
             uint64_t primeEnd = (limit / 30) + 1;
 
-            vector<uint64_t> ret = {2, 3, 5};
-
             for (size_t n = 0; n < primeEnd; n++)
                 for (uint8_t s = 1; s; s += s)
                     if (!(data_[n] & s))
-                        ret.push_back(n*30 + bitToNum(s));
+                        ret.push_back(n*30 + bitToNum(s) + offset);
 
-            while (!ret.empty() && ret.back() > limit)
+            while (!ret.empty() && ret.back() > limit+offset)
                 ret.pop_back();
-
-            return ret;
-        }
-
-        /**
-         * Reserves space for all the primes up to input.
-         *
-         * @param   limit   Max value to store.
-         */
-        void resize(uint64_t limit)
-        {
-            this->limit_ = limit;
-            data_.resize((limit / 30) + 1, 0);
         }
 
         /**
@@ -129,80 +116,6 @@ class primes_bitpack {
 
 };
 
-} // namespace
-
-/**
- * This class wraps calls to primes_bitpack for multithreaded use.
- */
-class threaded_bitpack {
-    private:
-        uint64_t size, limit_;
-
-    public:
-        vector<std::pair<uint64_t, primes_bitpack>> data_;
-
-        threaded_bitpack()
-        {
-            size = limit_ = 0;
-        }
-
-        threaded_bitpack(uint64_t limit, size_t threads) : limit_(limit)
-        {
-            size = limit / threads;
-            size += 30 - (size % 30); // Move to mult of 30
-            for (uint64_t i = 0; i < limit_; i += size) {
-                data_.push_back(std::make_pair(i, primes_bitpack()));
-                data_.back().second.resize(size);
-            }
-            data_[0].second.set(1); // Mark 1 as not prime
-        }
-
-        // TODO change primes_bitpack to use iterators to insert
-        vector<uint64_t> getList(uint64_t limit) const
-        {
-            vector<uint64_t> ret = data_[0].second.getList(size);
-
-            for (size_t i = 1; i < data_.size(); ++i) {
-                vector<uint64_t> tmp = data_[i].second.getList(size);
-                for (auto& x : tmp)
-                    x += data_[i].first;
-                ret.insert(ret.end(), tmp.begin() + 3, tmp.end());
-            }
-
-            while (!ret.empty() && ret.back() > limit)
-                ret.pop_back();
-            return ret;
-        }
-
-        uint64_t getLimit() const
-        {
-            return limit_;
-        }
-
-        /** 
-         * Returns the size of each of the segments
-         */
-        uint64_t getSize() const
-        {
-            return size;
-        }
-
-        /**
-         * Wrapper to check if the given input is prime
-         *
-         * @param   n   Number to check
-         * @return  True if number is prime
-         */
-        bool check(uint64_t n) const
-        {
-            for (auto& x : data_)
-                if (n < x.first + size)
-                    return x.second.check(n - x.first);
-            return false;
-        }
-};
-
-namespace {
 /**
  * Run a thread of the segmented Sieve of Eratosthenes. Store results in the target pointer
  *
@@ -211,7 +124,7 @@ namespace {
  * @param   start       Start of this thread's segment
  * @param   end         End of this thread's segment
  */
-void sieveThread(primes_bitpack* sieveSqrt, primes_bitpack* target, uint64_t start, uint64_t end)
+void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack* target, uint64_t start, uint64_t end)
 {
     uint64_t s = 7; // For tracking which primes are needed per segment
     uint64_t segment_size = L1D_CACHE_SIZE* 30;
@@ -266,14 +179,99 @@ void sieveThread(primes_bitpack* sieveSqrt, primes_bitpack* target, uint64_t sta
 
 } // namespace end
 
-Primes::Primes()
+/**
+ * This class wraps calls to primes_bitpack for multithreaded use.
+ */
+class threaded_bitpack {
+    private:
+        uint64_t size, limit_;
+
+    public:
+        vector<std::pair<uint64_t, primes_bitpack>> data_;
+
+        threaded_bitpack()
+        {
+            size = limit_ = 0;
+        }
+
+        /**
+         * Creates [threads] different 'primes_bitpack's for segmented work
+         * Breaking the bitpacks into multiple segments makes it easy to avoid
+         * using mutexes and still guarantee no conflicts
+         *
+         * @param   limit   Max size to sieve up to
+         * @param   threads Number of segments to create
+         */
+        threaded_bitpack(uint64_t limit, size_t threads) : limit_(limit)
+        {
+            size = limit / threads;
+            size += 30 - (size % 30); // Move to mult of 30
+            for (uint64_t i = 0; i < limit_; i += size) {
+                data_.push_back(std::make_pair(i, primes_bitpack(size)));
+            }
+            data_[0].second.set(1); // Mark 1 as not prime
+        }
+
+        /**
+         * Creates and returns the full list of primes up to limit
+         *
+         * @param   limit   End value of prime list
+         * @return  Vector containing all primes up to limit
+         */
+        vector<uint64_t> getList(uint64_t limit) const
+        {
+            vector<uint64_t> ret = {2, 3, 5};
+
+            for (const auto& x : data_)
+                x.second.getList(ret, size, x.first);
+
+            while (!ret.empty() && ret.back() > limit)
+                ret.pop_back();
+            return ret;
+        }
+
+        /**
+         * Gets the maximum value stored in the bitpack
+         *
+         * @return  Max value of bitpack
+         */
+        uint64_t getLimit() const
+        {
+            return limit_;
+        }
+
+        /** 
+         * Returns the size of each of the segments
+         *
+         * @return  Size of segments
+         */
+        uint64_t getSize() const
+        {
+            return size;
+        }
+
+        /**
+         * Wrapper to check if the given input is prime
+         *
+         * @param   n   Number to check
+         * @return  True if number is prime
+         */
+        bool check(uint64_t n) const
+        {
+            for (const auto& x : data_)
+                if (n < x.first + size)
+                    return x.second.check(n - x.first);
+            return false;
+        }
+};
+
+
+Primes::Primes() : pSieve(new threaded_bitpack())
 {
-    pSieve = new threaded_bitpack();
 }
 
 Primes::~Primes()
 {
-    delete pSieve;
 }
 
 /**
@@ -338,14 +336,10 @@ bool Primes::isPrime(uint64_t n) const
  */
 void Primes::sieve(uint64_t limit, size_t threads)
 {
-    if (pSieve)
-        delete pSieve;
-    pSieve = new threaded_bitpack(limit, threads);
+    pSieve.reset(new threaded_bitpack(limit, threads));
 
     uint64_t sqrtLimit = std::sqrt(limit) + 1;
-    primes_bitpack* sieveSqrt = new primes_bitpack();
-
-    sieveSqrt->resize(sqrtLimit);
+    std::shared_ptr<primes_bitpack> sieveSqrt(new primes_bitpack(sqrtLimit));
 
     // Generate everything below sqrt(limit)
     // This lets us provide each thread with a pointer to all primes
@@ -365,7 +359,6 @@ void Primes::sieve(uint64_t limit, size_t threads)
     // Wait for all to finish
     for (auto& t : thList)
         t.join();
-    delete sieveSqrt;
 }
 
 /**
@@ -401,15 +394,8 @@ const vector<uint64_t>& Primes::getList(uint64_t limit)
  */
 uint64_t Primes::pi(uint64_t x)
 {
-    // Counts the number of primes less than or equal to n
-    if (0 == x)
-        x = pSieve->getLimit();
-    if (!pList.empty() && x <= pSieve->getLimit()) {
-        vector<uint64_t>::iterator low;
-        low = std::upper_bound(pList.begin(), pList.end(), x);
-        return low - pList.begin();
-    }
-    // Estimate if it's higher than we have numbers for
+    if (!pList.empty() && x <= pSieve->getLimit())
+        return std::upper_bound(pList.begin(), pList.end(), x) - pList.begin();
     return (x/log(x))*(1 + (1.2762/log(x)));
 }
 
