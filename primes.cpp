@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <algorithm>
 #include <array>
-#include <thread>
 
 using std::vector;
 

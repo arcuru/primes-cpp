@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <thread>
 
 const uint32_t L1D_CACHE_SIZE = 32768;
-const uint32_t SIEVE_THREADS  = 4;
 
 class threaded_bitpack;
 
@@ -21,7 +21,7 @@ class Primes
 
         // Creates an internal data structure with all primes up to limit
         // Speeds up isPrime() and is used internally for getList()
-        void sieve(uint64_t limit, std::size_t threads = SIEVE_THREADS);
+        void sieve(uint64_t limit, std::size_t threads = std::thread::hardware_concurrency());
 
         // Calculate pi(x), number of primes below x
         // Returns the exact number if available, otherwise
