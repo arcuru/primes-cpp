@@ -189,9 +189,11 @@ void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack
 class threaded_bitpack {
     private:
         uint64_t size, limit_;
+        vector<std::pair<uint64_t, primes_bitpack>> data_;
 
     public:
-        vector<std::pair<uint64_t, primes_bitpack>> data_;
+
+        friend void Primes::sieve(uint64_t, size_t);
 
         threaded_bitpack()
         {
