@@ -127,7 +127,7 @@ class primes_bitpack {
  * @param   target      Pointer to bitpack to fill
  * @param   range       Range of values for this thread's segment
  */
-void sieveThread(const std::shared_ptr<primes_bitpack> sieveSqrt, primes_bitpack* target,
+void sieveThread(std::shared_ptr<const primes_bitpack> sieveSqrt, primes_bitpack* target,
                  std::pair<uint64_t, uint64_t> range)
 {
     uint64_t s = 7; // For tracking which primes are needed per segment
@@ -345,7 +345,7 @@ void Primes::sieve(uint64_t limit, size_t threads)
     pSieve.reset(new threaded_bitpack(limit, threads));
 
     uint64_t sqrtLimit = std::sqrt(limit) + 1;
-    std::shared_ptr<primes_bitpack> sieveSqrt(new primes_bitpack(sqrtLimit));
+    auto sieveSqrt = std::make_shared<primes_bitpack>(sqrtLimit);
 
     // Generate everything below sqrt(limit)
     // This lets us provide each thread with a pointer to all primes
