@@ -17,7 +17,7 @@ namespace {
  *
  * Data is stored with 2, 3, 5 wheel factorization. 1 byte corresponds to
  * 30 numbers. 0's mark primes.
- * 
+ *
  */
 class primes_bitpack {
     private:
@@ -244,7 +244,7 @@ class threaded_bitpack {
             return limit_;
         }
 
-        /** 
+        /**
          * Returns the size of each of the segments
          *
          * @return  Size of segments
