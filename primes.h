@@ -26,7 +26,7 @@ class Primes
         // Calculate pi(x), number of primes below x
         // Returns the exact number if available, otherwise
         // it returns an upper bound
-        uint64_t pi(uint64_t x);
+        uint64_t pi(uint64_t x) const;
 
         // Get a vector full of primes up to limit
         const std::vector<uint64_t>& getList(uint64_t limit = 0);

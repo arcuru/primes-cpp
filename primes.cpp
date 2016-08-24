@@ -398,7 +398,7 @@ const vector<uint64_t>& Primes::getList(uint64_t limit)
  * @param   x   Limit
  * @return  Number of primes less than or equal to input
  */
-uint64_t Primes::pi(uint64_t x)
+uint64_t Primes::pi(uint64_t x) const
 {
     if (!pList.empty() && x <= pSieve->getLimit())
         return std::upper_bound(pList.begin(), pList.end(), x) - pList.begin();
