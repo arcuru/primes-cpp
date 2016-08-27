@@ -1,6 +1,9 @@
 # Basic CMake project
 cmake_minimum_required(VERSION 2.8.2)
 
+# Output compilation database for clangtidy
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 # Set default build type to Release
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release.")
@@ -34,11 +37,19 @@ set(proj primes)
 project(primes CXX)
 
 # Enable C++14 features on gcc/clang
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(GNU|Clang)")
-    set(CMAKE_CXX_FLAGS "-std=c++14")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Clang)")
+    set(CMAKE_CXX_FLAGS "-Weverything -Wno-c++98-compat -Wno-padded -std=c++1z")
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(GCC)")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -std=c++1z")
+endif()
+
+# Add pthread support
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+
+# TODO Remove on C++17 compatibility
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-implicit-fallthrough")
 
 enable_testing()
 

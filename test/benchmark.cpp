@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     uint64_t tmp = 1e9;
     if ( argc > 1 )
-        tmp = atol(argv[1]);
+        tmp = static_cast<uint64_t>(atol(argv[1]));
 
     // Time the initial sieve
     using namespace std::chrono;

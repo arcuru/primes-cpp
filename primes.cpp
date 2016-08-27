@@ -20,8 +20,8 @@ namespace {
  */
 class primes_bitpack {
     private:
-        vector<uint8_t> data_; //!< Storage of bitpacked array
         uint64_t limit_; //!< Max stored prime
+        vector<uint8_t> data_; //!< Storage of bitpacked array
 
     public:
 
@@ -32,7 +32,7 @@ class primes_bitpack {
         /**
          * Adds to a given vector the values contained in this bitpack
          *
-         * @param   v       Vector
+         * @param   ret     Vector
          * @param   limit   Upper bound.
          * @param   offset  The starting point of this bitpack
          */
@@ -81,10 +81,10 @@ class primes_bitpack {
          */
         inline uint8_t numToBit(uint64_t num) const
         {
-            static std::array<uint8_t,30> lookup = {
+            static std::array<uint8_t,30> lookup{ {
                 0, 0x01, 0, 0, 0, 0, 0, 0x02, 0, 0, 0, 0x04, 0, 0x08, 0, 0, 0, 0x10,
-                0, 0x20, 0, 0, 0, 0x40, 0, 0, 0, 0, 0, 0x80};
-            return lookup[num];
+                0, 0x20, 0, 0, 0, 0x40, 0, 0, 0, 0, 0, 0x80} };
+            return lookup.at(num);
         }
 
         /**
@@ -147,7 +147,7 @@ void sieveThread(std::shared_ptr<const primes_bitpack> sieveSqrt, primes_bitpack
                 if (s * s < low) {
                     uint64_t tmp = (low / s) + 1;
                     tmp *= s;
-                    while (!sieveSqrt->numToBit(tmp%30))
+                    while (!sieveSqrt->numToBit(tmp%30)) // Checking for a possible prime
                         tmp += s;
                     primes.push_back(std::make_pair(s, tmp));
                 }
@@ -343,7 +343,7 @@ void Primes::sieve(uint64_t limit, size_t threads)
 {
     pSieve.reset(new threaded_bitpack(limit, threads));
 
-    uint64_t sqrtLimit = std::sqrt(limit) + 1;
+    uint64_t sqrtLimit = static_cast<uint64_t>(std::sqrt(limit)) + 1;
     auto sieveSqrt = std::make_shared<primes_bitpack>(sqrtLimit);
 
     // Generate everything below sqrt(limit)
@@ -401,8 +401,8 @@ const vector<uint64_t>& Primes::getList(uint64_t limit)
 uint64_t Primes::pi(uint64_t x) const
 {
     if (!pList.empty() && x <= pSieve->getLimit())
-        return std::upper_bound(pList.begin(), pList.end(), x) - pList.begin();
-    return (x/log(x))*(1 + (1.2762/log(x)));
+        return static_cast<uint64_t>(std::upper_bound(pList.begin(), pList.end(), x) - pList.begin());
+    return static_cast<uint64_t>((x/log(x))*(1 + (1.2762/log(x))));
 }
 
 
