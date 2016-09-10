@@ -1,8 +1,8 @@
 #include "primes.h"
-#include <cmath>
-#include <stdexcept>
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <stdexcept>
 
 using std::vector;
 
@@ -25,7 +25,7 @@ class primes_bitpack {
 
     public:
 
-        primes_bitpack(uint64_t limit)
+        explicit primes_bitpack(uint64_t limit)
             : limit_(limit), data_((limit / 30) + 1, 0)
         {}
 
@@ -183,7 +183,7 @@ void sieveThread(std::shared_ptr<const primes_bitpack> sieveSqrt, primes_bitpack
     }
 }
 
-} // namespace end
+} // Anonymous namespace
 
 /**
  * This class wraps calls to primes_bitpack for multithreaded use.
@@ -297,9 +297,7 @@ Primes::Primes() : pSieve(new threaded_bitpack())
 {
 }
 
-Primes::~Primes()
-{
-}
+Primes::~Primes() = default;
 
 /**
  * Checks if a number is primes in the most efficient available way.
@@ -352,7 +350,6 @@ bool Primes::isPrime(uint64_t n) const
     }
     return true;
 }
-
 
 /**
  * Generate a compact array of all primes up to the limit. Speeds up

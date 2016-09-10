@@ -1,7 +1,7 @@
 #include "primes.h"
-#include <iostream>
-#include <chrono>
 #include <cassert>
+#include <chrono>
+#include <iostream>
 
 using namespace std;
 
@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     uint64_t tmp = 1e9;
     if ( argc > 1 )
-        tmp = static_cast<uint64_t>(atol(argv[1]));
+        tmp = uint64_t(atol(argv[1]));
 
     // Time the initial sieve
     using namespace std::chrono;
@@ -39,8 +39,7 @@ int main(int argc, char** argv)
     //for (auto x : list)
     //    std::cout << x << std::endl;
 
-    uint64_t isprimeLimit = 5e8;
-    isprimeLimit = tmp;
+    uint64_t isprimeLimit = tmp;
     if (tmp < isprimeLimit)
         p.sieve(isprimeLimit);
 
