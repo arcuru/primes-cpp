@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <algorithm>
 #include <array>
-#include <future>
 
 using std::vector;
 
@@ -31,30 +30,28 @@ class primes_bitpack {
         {}
 
         /**
-         * Spawns a future to create a list of all primes in this bitpack.
+         * Returns a list of all primes stored in this bitpack
          *
          * @param   limit   Upper bound.
          * @param   offset  The starting point of this bitpack
-         * @return  Future promising a vector full of primes
+         * @return  Vector containing all primes
          */
-        std::future<vector<uint64_t>> getList(uint64_t limit, uint64_t offset) const
+        vector<uint64_t> getList(uint64_t limit, uint64_t offset) const
         {
-            return std::async(std::launch::async, [=] {
-                if ( limit > limit_ )
-                    throw std::out_of_range("Prime hasn't been sieved.");
-                uint64_t primeEnd = (limit / 30) + 1;
+            if ( limit > limit_ )
+                throw std::out_of_range("Prime hasn't been sieved.");
+            uint64_t primeEnd = (limit / 30) + 1;
 
-                vector<uint64_t> ret;
+            vector<uint64_t> ret;
 
-                for (size_t n = 0; n < primeEnd; n++)
-                    for (uint8_t s = 1; s; s += s)
-                        if (!(data_[n] & s))
-                            ret.push_back(n*30 + bitToNum(s) + offset);
+            for (size_t n = 0; n < primeEnd; n++)
+                for (uint8_t s = 1; s; s += s)
+                    if (!(data_[n] & s))
+                        ret.push_back(n*30 + bitToNum(s) + offset);
 
-                while (!ret.empty() && ret.back() > limit+offset)
-                    ret.pop_back();
-                return ret;
-            });
+            while (!ret.empty() && ret.back() > limit+offset)
+                ret.pop_back();
+            return ret;
         }
 
         /**
@@ -234,7 +231,8 @@ class threaded_bitpack {
             // Start all lists generating
             vector<std::future<vector<uint64_t>>> thList;
             for (const auto& x : data_) {
-                thList.push_back(x.second.getList(size, x.first));
+                thList.push_back(std::async(std::launch::async,
+                            [&] { return x.second.getList(size, x.first); }));
             }
 
             vector<uint64_t> ret = {2, 3, 5};

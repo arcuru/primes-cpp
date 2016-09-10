@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <thread>
+#include <future>
 
 const uint32_t L1D_CACHE_SIZE = 32768;
 
