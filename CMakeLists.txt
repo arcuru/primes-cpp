@@ -18,7 +18,7 @@ project(primes CXX)
 
 # Enable C++17 features on gcc/clang
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Clang)")
-    set(CMAKE_CXX_FLAGS "-Weverything -Wpedantic -Werror -std=c++1z")
+    set(CMAKE_CXX_FLAGS "-fcolor-diagnostics -Weverything -Wpedantic -Werror -std=c++1z")
     # Turn off select warnings
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat -Wno-padded")
     # TODO Remove on C++17 compatibility
